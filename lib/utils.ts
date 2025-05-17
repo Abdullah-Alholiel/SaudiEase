@@ -52,3 +52,5 @@ export const userTypeDescriptions = {
     icon: 'compass'
   }
 };
+
+export type { UserType } from './contexts/user-type-context';
