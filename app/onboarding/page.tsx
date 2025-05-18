@@ -12,6 +12,10 @@ import Preferences from '@/components/onboarding/preferences';
 import Questionnaire from '@/components/onboarding/questionnaire';
 import { Check, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import ProfileSetup from '@/components/onboarding/profile-setup';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 
 type PreferencesData = {
   interests: string[];
@@ -35,7 +39,7 @@ interface OnboardingData {
   preferences: PreferencesData;
 }
 
-type OnboardingStep = 'user-type' | 'questionnaire' | 'preferences';
+type OnboardingStep = 'user-type' | 'profile-setup' | 'questionnaire' | 'preferences';
 
 export default function Onboarding() {
   const router = useRouter();
@@ -46,6 +50,7 @@ export default function Onboarding() {
   const [error, setError] = useState<string | null>(null);
   const [stepValidity, setStepValidity] = useState({
     userType: false,
+    profileSetup: false,
     questionnaire: false,
     preferences: false
   });
@@ -81,6 +86,14 @@ export default function Onboarding() {
     }
   });
 
+  const stepOrder: OnboardingStep[] = ['user-type', 'profile-setup', 'questionnaire', 'preferences'];
+  const totalSteps = stepOrder.length;
+  const currentStepIndex = stepOrder.indexOf(currentStep);
+
+  // Calculate progress, ensuring it's a finite number between 0 and 100
+  const calculatedProgress = totalSteps > 1 ? (currentStepIndex / (totalSteps - 1)) * 100 : 0;
+  const progress = Number.isFinite(calculatedProgress) ? calculatedProgress : 0;
+
   // Redirect to dashboard if user is already logged in
   useEffect(() => {
     if (user) {
@@ -102,6 +115,10 @@ export default function Onboarding() {
     setStepValidity(prev => ({ ...prev, userType: valid }));
   };
 
+  const handleProfileSetupValid = (valid: boolean) => {
+    setStepValidity(prev => ({ ...prev, profileSetup: valid }));
+  };
+
   const handleQuestionnaireValid = (valid: boolean) => {
     setStepValidity(prev => ({ ...prev, questionnaire: valid }));
   };
@@ -120,21 +137,21 @@ export default function Onboarding() {
   };
 
   const prevStep = () => {
-    if (currentStep === 'questionnaire') {
-      setCurrentStep('user-type');
-      setStepValidity(prev => ({ ...prev, questionnaire: false }));
-      setUserType('' as any);
-    } else if (currentStep === 'preferences') {
-      setCurrentStep('questionnaire');
-      setStepValidity(prev => ({ ...prev, preferences: false }));
+    const currentStepIndex = stepOrder.indexOf(currentStep);
+    if (currentStepIndex > 0) {
+      setCurrentStep(stepOrder[currentStepIndex - 1]);
+      // Reset validity for the step being navigated away from
+      setStepValidity(prev => ({ ...prev, [currentStep]: false }));
+    } else {
+      // If on the first step, navigate back to the home page
+      router.push('/');
     }
   };
 
   const nextStep = () => {
-    if (currentStep === 'user-type') {
-      setCurrentStep('questionnaire');
-    } else if (currentStep === 'questionnaire') {
-      setCurrentStep('preferences');
+    const currentStepIndex = stepOrder.indexOf(currentStep);
+    if (currentStepIndex < stepOrder.length - 1) {
+      setCurrentStep(stepOrder[currentStepIndex + 1]);
     } else {
       completeOnboarding();
     }
@@ -167,6 +184,8 @@ export default function Onboarding() {
     switch (currentStep) {
       case 'user-type':
         return stepValidity.userType;
+      case 'profile-setup':
+        return stepValidity.profileSetup;
       case 'questionnaire':
         return stepValidity.questionnaire;
       case 'preferences':
@@ -184,6 +203,14 @@ export default function Onboarding() {
             onNextAction={nextStep}
             onValidAction={handleUserTypeValid}
             onBackAction={() => router.push('/')}
+          />
+        );
+      case 'profile-setup':
+        return (
+          <ProfileSetup
+            onNextAction={nextStep}
+            onValid={handleProfileSetupValid}
+            onBackAction={prevStep}
           />
         );
       case 'questionnaire':
@@ -235,7 +262,16 @@ export default function Onboarding() {
             <p className="text-muted-foreground text-center mb-8">
               Your preferences have been saved. Redirecting you to sign up...
             </p>
-            <Progress value={100} className="w-full max-w-md" />
+            <div className="space-y-6 max-w-2xl mx-auto">
+              <div className="w-full bg-secondary h-2 rounded-full mb-8">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out"
+                  style={{
+                    width: `${progress}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
           </motion.div>
         ) : (
           <>
@@ -252,7 +288,6 @@ export default function Onboarding() {
                   Step {getStepNumber(currentStep)} of 3
                 </span>
               </div>
-              <Progress value={Math.floor(((getStepNumber(currentStep) - 1) / 3) * 100)} className="h-2" />
             </div>
 
             {error && (

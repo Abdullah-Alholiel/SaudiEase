@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, Clock, FileText, AlertCircle, Upload } from 'lucide-react';
@@ -56,6 +55,19 @@ export default function DocumentsPage() {
     'in-progress': 'bg-primary text-white',
     'pending': 'bg-amber-500 text-white',
     'attention': 'bg-destructive text-white',
+  };
+
+  // Progress bar colors
+  const progressColors = {
+    'completed': 'bg-success',
+    'in-progress': 'bg-primary',
+    'pending': 'bg-amber-500',
+    'attention': 'bg-destructive',
+  };
+
+  // Helper function to ensure progress value is valid
+  const getValidProgress = (progress: number) => {
+    return Math.min(Math.max(progress, 0), 100);
   };
   
   return (
@@ -133,10 +145,15 @@ export default function DocumentsPage() {
                     </Link>
                   </Button>
                 </div>
-                <Progress value={doc.progress} className="h-2" />
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-300 ${progressColors[doc.status as keyof typeof progressColors]}`}
+                    style={{ width: `${getValidProgress(doc.progress)}%` }}
+                  />
+                </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Progress</span>
-                  <span>{doc.progress}%</span>
+                  <span>{getValidProgress(doc.progress)}%</span>
                 </div>
               </div>
             ))}
