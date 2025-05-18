@@ -252,7 +252,7 @@ export default function Onboarding() {
                   Step {getStepNumber(currentStep)} of 3
                 </span>
               </div>
-              <Progress value={((getStepNumber(currentStep) - 1) / 3) * 100} className="h-2" />
+              <Progress value={Math.floor(((getStepNumber(currentStep) - 1) / 3) * 100)} className="h-2" />
             </div>
 
             {error && (
